@@ -76,8 +76,6 @@ void bubble_sort(vector<T> &list, bool descending) {
     }
 }
 
-
-
 /* Selection Sort 
  *
  * 5 points
@@ -114,7 +112,6 @@ void selection_sort(vector<T> &list, bool descending) {
     }
 }
 
-
 /* Insertion Sort 
  *
  * 5 points
@@ -131,8 +128,6 @@ void selection_sort(vector<T> &list, bool descending) {
  *  bool decending:  if true, then sort in descending order; otherwise sort
  *                   in ascending order (the default)
  * */
-//template<typename T>
-//void insertion_sort(vector<T> &list, bool descending = false);
 template<typename T>
 void insertion_sort(vector<T> &list, bool descending) {
     size_t n = list.size();
@@ -369,8 +364,6 @@ void my_hybrid_sort(vector<T> &list, bool descending) {
  *   - If you are enrolled in the undergraduate section of this course, this
  *     function is optional and worth extra credit.
  */
-//template<class T>
-//concept Integral = std::is_integral<T>::value;
 template<Integral T> 
 void binary_radix_sort(vector<T> &list, bool descending) {
     if (list.size() < 2) return;
@@ -416,8 +409,6 @@ void binary_radix_sort(vector<T> &list, bool descending) {
         list = output;
     }
 }
-
-
 
 /* Base B Radix Sort 
  *
@@ -479,8 +470,6 @@ void radix_sort(vector<T> &list, unsigned int base, bool descending) {
         list = output;
     }
 }
-
-
 
 int main() {
     /**** STUDENT CODE HERE ****/
