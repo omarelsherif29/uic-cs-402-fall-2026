@@ -1,6 +1,8 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <queue>
+#include <stack>
 
 // be sure to change FIRSTNAME and LASTNAME with your own first and last name
 #include "Omar_Elsherif_project3.h"
