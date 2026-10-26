@@ -408,10 +408,86 @@ TreeNode* bits_to_tree(const vector<bool>& bits) {
 *
 */
 
-// Do not modify this function signature
-ParseTreeNode* build_parse_tree(const string& expr) {
+// Helper to find matching closing parenthesis
+int find_matching_paren(const string& expr, int start) {
+    int count = 0;
+    for (size_t i = start; i < expr.length(); ++i) {
+        if (expr[i] == '(') count++;
+        else if (expr[i] == ')') {
+            count--;
+            if (count == 0) return i;
+        }
+    }
+    return -1;
 }
 
+// Helper recursive parser function
+ParseTreeNode* parse_expr(const string& expr, int start, int end) {
+    if (start > end) return nullptr;
+
+    // Strip outer matching parentheses if they wrap the entire expression
+    while (expr[start] == '(' && expr[end] == ')') {
+        int matching = find_matching_paren(expr, start);
+        if (matching == end) {
+            start++;
+            end--;
+        } else {
+            break;
+        }
+    }
+
+    if (start > end) return nullptr;
+
+    // Single variable case
+    if (start == end) {
+        return new ParseTreeNode{expr[start], nullptr, nullptr};
+    }
+
+    int paren_depth = 0;
+    int split_idx = -1;
+    char split_op = '\0';
+
+    // First pass: look for OR or AND at the top level 
+    for (int i = end; i >= start; --i) {
+        if (expr[i] == ')') paren_depth++;
+        else if (expr[i] == '(') paren_depth--;
+        else if (paren_depth == 0 && (expr[i] == '|' || expr[i] == '^')) {
+            split_idx = i;
+            split_op = expr[i];
+            break; 
+        }
+    }
+
+    // If we found an AND or OR operator at the top level
+    if (split_idx != -1) {
+        ParseTreeNode* node = new ParseTreeNode{split_op, nullptr, nullptr};
+        node->left_child = parse_expr(expr, start, split_idx - 1);
+        node->right_child = parse_expr(expr, split_idx + 1, end);
+        return node;
+    }
+
+    // Look for NOT operator (higher precedence, evaluated next)
+    paren_depth = 0;
+    for (int i = start; i <= end; ++i) {
+        if (expr[i] == '(') paren_depth++;
+        else if (expr[i] == ')') paren_depth--;
+        else if (paren_depth == 0 && expr[i] == '~') {
+            ParseTreeNode* node = new ParseTreeNode{'~', nullptr, nullptr};
+            node->left_child = parse_expr(expr, i + 1, end);
+            node->right_child = nullptr;
+            return node;
+        }
+    }
+
+    // Fallback for wrapped expressions or single terms
+    return parse_expr(expr, start + 1, end - 1);
+}
+
+// Do not modify this function signature
+ParseTreeNode* build_parse_tree(const string& expr) {
+    if (expr.empty()) return nullptr;
+    return parse_expr(expr, 0, expr.length() - 1);
+}
 
 int main() {
 
