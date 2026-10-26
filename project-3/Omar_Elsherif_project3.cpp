@@ -141,7 +141,8 @@ vector<int> weird_traversal(TreeNode* root) {
     vector<vector<int>> layers;
     queue<TreeNode*> q;
     q.push(root);
-     // Single BFS traversal to group nodes by layer
+
+    // Single BFS traversal to group nodes by layer
     while (!q.empty()) {
         int level_size = q.size();
         vector<int> current_level;
@@ -149,15 +150,13 @@ vector<int> weird_traversal(TreeNode* root) {
         for (int i = 0; i < level_size; ++i) {
             TreeNode* curr = q.front();
             q.pop();
-            current_level.push_back(curr->node_id); // Assuming node_id is int or stored appropriately
+            current_level.push_back(curr->id);
 
-            // Traverse children/siblings in first-child, next-sibling format
-            // In FC-NS trees, a node's children are reached by going to left_child, 
-            // and then traversing right_child pointers from there.
-            TreeNode* child = curr->left_child;
+            // go to the first child, then traverse all its siblings using next_sibling
+            TreeNode* child = curr->first_child;
             while (child != nullptr) {
                 q.push(child);
-                child = child->right_child;
+                child = child->next_sibling;
             }
         }
         layers.push_back(current_level);
@@ -173,12 +172,11 @@ vector<int> weird_traversal(TreeNode* root) {
     }
 
     // Visit all odd layers (bottom to top, right to left)
-    // Find the starting odd layer (either the last layer if it's odd, or second-to-last)
-    int start_odd = (layers.size() - 1 % 2 == 0) ? layers.size() - 2 : layers.size() - 1;
+    int start_odd = 0;
     if (layers.size() % 2 == 0) {
-        start_odd = layers.size() - 1; // if total layers is even, the last index is an odd layer
+        start_odd = layers.size() - 1; 
     } else {
-        start_odd = layers.size() - 2; // if total layers is odd, the last index is an even layer
+        start_odd = layers.size() - 2;
     }
 
     for (int i = start_odd; i >= 1; i -= 2) {
@@ -191,7 +189,6 @@ vector<int> weird_traversal(TreeNode* root) {
 
     return result;
 }
-
 
 
 /* Problem 2: Bits-to-Tree 
@@ -259,6 +256,53 @@ vector<int> weird_traversal(TreeNode* root) {
 
 // Do not modify this fuction signature
 TreeNode* bits_to_tree(const vector<bool>& bits) {
+    // Validation check
+    if (bits.size() % 2 != 0) return nullptr;
+    
+    int ones = 0, zeros = 0;
+    for (bool bit : bits) {
+        if (bit) ones++;
+        else zeros++;
+        if (zeros > ones) return nullptr; // Prefix rule check
+    }
+    if (ones != zeros) return nullptr;
+    if (bits.empty()) return nullptr;
+
+    // Build the tree using a stack
+    int next_id = 0;
+    TreeNode* root = new TreeNode{next_id++, nullptr, nullptr};
+    
+    // Stack to keep track of the path of nodes
+    stack<TreeNode*> path;
+    path.push(root);
+   
+    stack<TreeNode*> s;
+    s.push(root);
+
+    // Iterate through bits
+    for (size_t i = 0; i < bits.size(); ++i) {
+        if (bits[i] == 1) {
+            TreeNode* new_node = new TreeNode{next_id++, nullptr, nullptr};
+            TreeNode* parent = s.top();
+            
+            if (parent->first_child == nullptr) {
+                parent->first_child = new_node;
+            } else {
+                // Find the last sibling
+                TreeNode* curr = parent->first_child;
+                while (curr->next_sibling != nullptr) {
+                    curr = curr->next_sibling;
+                }
+                curr->next_sibling = new_node;
+            }
+            s.push(new_node);
+        } else {
+            if (s.empty()) return nullptr;
+            s.pop();
+        }
+    }
+    
+    return root;
 }
 
 
