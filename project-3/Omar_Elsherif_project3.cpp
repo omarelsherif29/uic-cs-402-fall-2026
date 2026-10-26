@@ -138,56 +138,29 @@ const string who_am_i() {
 
 // Do not modify this function signature.
 vector<int> weird_traversal(TreeNode* root) {
-    if (root == nullptr) return {};
-
-    vector<vector<int>> layers;
+    vector<int> result;
+    if (root == nullptr) return result;
+ 
+    vector<int> odd_nodes;
     queue<TreeNode*> q;
     q.push(root);
+    int layer = 0;
 
     // Single BFS traversal to group nodes by layer
     while (!q.empty()) {
-        int level_size = q.size();
-        vector<int> current_level;
-
-        for (int i = 0; i < level_size; ++i) {
+        size_t level_size = q.size();
+        for (size_t i = 0; i < level_size; ++i) {
             TreeNode* curr = q.front();
             q.pop();
-            current_level.push_back(curr->id);
-
-            // go to the first child, then traverse all its siblings using next_sibling
-            TreeNode* child = curr->first_child;
-            while (child != nullptr) {
-                q.push(child);
-                child = child->next_sibling;
-            }
+            if (layer % 2 == 0) result.push_back(curr->id);
+            else odd_nodes.push_back(curr->id);
+ 
+            for (TreeNode* c = curr->first_child; c != nullptr; c = c->next_sibling)
+                q.push(c);
         }
-        layers.push_back(current_level);
+        ++layer;
     }
-
-    vector<int> result;
-
-    // Visit all even layers (top to bottom, left to right)
-    for (size_t i = 0; i < layers.size(); i += 2) {
-        for (int val : layers[i]) {
-            result.push_back(val);
-        }
-    }
-
-    // Visit all odd layers (bottom to top, right to left)
-    int start_odd = 0;
-    if (layers.size() % 2 == 0) {
-        start_odd = layers.size() - 1; 
-    } else {
-        start_odd = layers.size() - 2;
-    }
-
-    for (int i = start_odd; i >= 1; i -= 2) {
-        if (i < 0) break;
-        // Right to left for odd layers
-        for (auto it = layers[i].rbegin(); it != layers[i].rend(); ++it) {
-            result.push_back(*it);
-        }
-    }
+    result.insert(result.end(), odd_nodes.rbegin(), odd_nodes.rend());
 
     return result;
 }
@@ -261,49 +234,34 @@ TreeNode* bits_to_tree(const vector<bool>& bits) {
     // Validation check
     if (bits.size() % 2 != 0) return nullptr;
     
-    int ones = 0, zeros = 0;
-    for (bool bit : bits) {
-        if (bit) ones++;
-        else zeros++;
-        if (zeros > ones) return nullptr; // Prefix rule check
+    int balance = 0;
+    for (size_t i = 0; i < bits.size(); ++i) {
+        balance += bits[i] ? 1 : -1;
+        if (balance < 0) return nullptr;
     }
-    if (ones != zeros) return nullptr;
-    if (bits.empty()) return nullptr;
-
-    // Build the tree using a stack
+    if (balance != 0) return nullptr;
+    
     int next_id = 0;
     TreeNode* root = new TreeNode{next_id++, nullptr, nullptr};
-    
-    // Stack to keep track of the path of nodes
-    stack<TreeNode*> path;
+ 
+    stack<TreeNode*> path;       // current root-to-node path
+    stack<TreeNode*> last_child; // most recent child added under each path node
     path.push(root);
-   
-    stack<TreeNode*> s;
-    s.push(root);
-
-    // Iterate through bits
+    last_child.push(nullptr);
+ 
     for (size_t i = 0; i < bits.size(); ++i) {
-        if (bits[i] == 1) {
-            TreeNode* new_node = new TreeNode{next_id++, nullptr, nullptr};
-            TreeNode* parent = s.top();
-            
-            if (parent->first_child == nullptr) {
-                parent->first_child = new_node;
-            } else {
-                // Find the last sibling
-                TreeNode* curr = parent->first_child;
-                while (curr->next_sibling != nullptr) {
-                    curr = curr->next_sibling;
-                }
-                curr->next_sibling = new_node;
-            }
-            s.push(new_node);
+        if (bits[i]) {
+            TreeNode* n = new TreeNode{next_id++, nullptr, nullptr};
+            if (last_child.top() == nullptr) path.top()->first_child = n;
+            else last_child.top()->next_sibling = n;
+            last_child.top() = n;
+            path.push(n);
+            last_child.push(nullptr);
         } else {
-            if (s.empty()) return nullptr;
-            s.pop();
+            path.pop();
+            last_child.pop();
         }
     }
-    
     return root;
 }
 
@@ -410,85 +368,40 @@ TreeNode* bits_to_tree(const vector<bool>& bits) {
 *
 */
 
-// Helper to find matching closing parenthesis
-int find_matching_paren(const string& expr, int start) {
-    int count = 0;
-    for (size_t i = start; i < expr.length(); ++i) {
-        if (expr[i] == '(') count++;
-        else if (expr[i] == ')') {
-            count--;
-            if (count == 0) return i;
-        }
+static ParseTreeNode* parse_unary(const string& s, size_t& pos);
+ 
+static ParseTreeNode* parse_expression(const string& s, size_t& pos) {
+    ParseTreeNode* left = parse_unary(s, pos);
+    while (pos < s.size() && (s[pos] == '|' || s[pos] == '^')) {
+        char op = s[pos++];
+        ParseTreeNode* right = parse_unary(s, pos);
+        left = new ParseTreeNode{op, left, right};
     }
-    return -1;
+    return left;
 }
-
-// Helper recursive parser function
-ParseTreeNode* parse_expr(const string& expr, int start, int end) {
-    if (start > end) return nullptr;
-
-    // Strip outer matching parentheses if they wrap the entire expression
-    while (expr[start] == '(' && expr[end] == ')') {
-        int matching = find_matching_paren(expr, start);
-        if (matching == end) {
-            start++;
-            end--;
-        } else {
-            break;
-        }
+ 
+static ParseTreeNode* parse_unary(const string& s, size_t& pos) {
+    if (pos >= s.size()) return nullptr;
+    char c = s[pos];
+    if (c == '~') {
+        ++pos;
+        ParseTreeNode* child = parse_unary(s, pos);
+        return new ParseTreeNode{'~', child, nullptr};
     }
-
-    if (start > end) return nullptr;
-
-    // Single variable case
-    if (start == end) {
-        return new ParseTreeNode{expr[start], nullptr, nullptr};
+    if (c == '(') {
+        ++pos;
+        ParseTreeNode* inner = parse_expression(s, pos);
+        if (pos < s.size() && s[pos] == ')') ++pos;
+        return inner;
     }
-
-    int paren_depth = 0;
-    int split_idx = -1;
-    char split_op = '\0';
-
-    // First pass: look for OR or AND at the top level 
-    for (int i = end; i >= start; --i) {
-        if (expr[i] == ')') paren_depth++;
-        else if (expr[i] == '(') paren_depth--;
-        else if (paren_depth == 0 && (expr[i] == '|' || expr[i] == '^')) {
-            split_idx = i;
-            split_op = expr[i];
-            break; 
-        }
-    }
-
-    // If we found an AND or OR operator at the top level
-    if (split_idx != -1) {
-        ParseTreeNode* node = new ParseTreeNode{split_op, nullptr, nullptr};
-        node->left_child = parse_expr(expr, start, split_idx - 1);
-        node->right_child = parse_expr(expr, split_idx + 1, end);
-        return node;
-    }
-
-    // Look for NOT operator (higher precedence, evaluated next)
-    paren_depth = 0;
-    for (int i = start; i <= end; ++i) {
-        if (expr[i] == '(') paren_depth++;
-        else if (expr[i] == ')') paren_depth--;
-        else if (paren_depth == 0 && expr[i] == '~') {
-            ParseTreeNode* node = new ParseTreeNode{'~', nullptr, nullptr};
-            node->left_child = parse_expr(expr, i + 1, end);
-            node->right_child = nullptr;
-            return node;
-        }
-    }
-
-    // Fallback for wrapped expressions or single terms
-    return parse_expr(expr, start + 1, end - 1);
+    ++pos;
+    return new ParseTreeNode{c, nullptr, nullptr};
 }
-
-// Do not modify this function signature
+ 
 ParseTreeNode* build_parse_tree(const string& expr) {
     if (expr.empty()) return nullptr;
-    return parse_expr(expr, 0, expr.length() - 1);
+    size_t pos = 0;
+    return parse_expression(expr, pos);
 }
 
 int main() {
