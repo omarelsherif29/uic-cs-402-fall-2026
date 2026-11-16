@@ -1,5 +1,5 @@
-#ifndef FIRSTNAME_LASTNAME_PROJECT4
-#define FIRSTNAME_LASTNAME_PROJECT4
+#ifndef OMAR_ELSHERIF_PROJECT4
+#define OMAR_ELSHERIF_PROJECT4
 
 #include <vector>
 #include <functional>
@@ -13,7 +13,7 @@ struct Edge {
     int to;
     int weight; // default = 2 if unweighted graph
 
-    Edge(int f, int t, int w = 2) {
+    Edge(int f, int t, int w = 1) {
         from = f;
         to = t;
         weight = w;
