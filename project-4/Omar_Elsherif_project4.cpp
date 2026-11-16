@@ -172,7 +172,34 @@ vector<Node> dijkstras_algorithm(int n, vector<Edge> edges, int source) {
     // Your code here!
     // Note: see the LeetCode from in-class for the problem "Cheapest Flights
     // K stops" to see how you can create a priority_queue with the Node struct.
-    
+    if (n <= 0) return {};
+
+    vector<Node> best(n);
+    for (int i = 0; i < n; ++i) best[i] = {i, INT_MAX, -1};
+    if (source < 0 || source >= n) return best;
+
+    vector<vector<pair<int,int>>> graph(n);
+    for (const Edge& e : edges)
+        graph[e.from].push_back({e.to, e.weight});
+
+    best[source].path_cost = 0;
+
+    priority_queue<Node, vector<Node>, greater<Node>> pq;
+    pq.push(best[source]);
+
+    while (!pq.empty()) {
+        Node u = pq.top(); pq.pop();
+        if (u.path_cost > best[u.id].path_cost) continue;
+
+        for (auto [v, w] : graph[u.id]) {
+            if (u.path_cost != INT_MAX && u.path_cost + w < best[v].path_cost) {
+                best[v].path_cost = u.path_cost + w;
+                best[v].pred = u.id;
+                pq.push(best[v]);
+            }
+        }
+    }
+    return best; 
 }
 
 
