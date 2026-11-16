@@ -66,8 +66,6 @@ const string who_am_i() {
  * Note: Edge is a struct defined in Firstname_Lastname_project2.h.
  *
  */
-
-
 vector<int> topological_sort(int n, vector<Edge> edges) {
     vector<vector<int>> graph(n);
     vector<int> indeg(n, 0);
@@ -121,6 +119,24 @@ vector<int> topological_sort(int n, vector<Edge> edges) {
  *
  */
 vector<int> dag_single_source(int n, vector<Edge> edges, int source) {
+    if (n <= 0) return {};
+    vector<int> dist(n, INT_MAX);
+    if (source < 0 || source >= n) return dist;
+
+    vector<vector<pair<int,int>>> graph(n);
+    for (const Edge& e : edges)
+        graph[e.from].push_back({e.to, e.weight});
+
+    vector<int> order = topological_sort(n, edges);
+    dist[source] = 0;
+
+    for (int u : order) {
+        if (dist[u] == INT_MAX) continue;
+        for (auto [v, w] : graph[u])
+            if (dist[u] + w < dist[v])
+                dist[v] = dist[u] + w;
+    }
+    return dist;
 }
 
 
