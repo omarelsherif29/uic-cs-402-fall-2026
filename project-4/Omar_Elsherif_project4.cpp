@@ -299,7 +299,11 @@ vector<Node> dijkstras_algorithm(int n, vector<Edge> edges, int source) {
 
 // You must implement this function.
 double heuristic_cost(GridNode start, GridNode dest) {
-    // Your code here!
+    double dx = abs(start.x - dest.x);
+    double dy = abs(start.y - dest.y);
+    double diag = min(dx, dy);
+    double straight = max(dx, dy) - diag;
+    return 1.5 * diag + straight;
 }
 
 // To test your algorithm with the function "heruistic_cost" above,
@@ -313,13 +317,62 @@ vector<GridNode> a_star_algorithm(
     function<double(GridNode,GridNode)> h
 ) 
 {
-    // Your code here!
-    // Be sure to use "h" from the inputs in your implementation; do not
-    // directly use "heruistic_cost" above!
+    if (m <= 0 || n <= 0) return {};
 
+    auto in_bounds = [&](int x, int y) { return x >= 0 && x < m && y >= 0 && y < n; };
+    auto id = [&](int x, int y) { return y * m + x; };
+
+    if (!in_bounds(source.x, source.y) || !in_bounds(target.x, target.y)) return {};
+
+    vector<vector<pair<int,double>>> adj(m * n);
+    for (const GridEdge& e : edges) {
+        if (!in_bounds(e.from_x, e.from_y) || !in_bounds(e.to_x, e.to_y)) continue;
+        bool diagonal = (e.from_x != e.to_x) && (e.from_y != e.to_y);
+        adj[id(e.from_x, e.from_y)].push_back({id(e.to_x, e.to_y), diagonal ? 1.5 : 1.0});
+    }
+
+    const double INF = numeric_limits<double>::infinity();
+    vector<GridNode> best(m * n);
+    for (int y = 0; y < n; ++y)
+        for (int x = 0; x < m; ++x)
+            best[id(x, y)] = {x, y, INF, -1, -1};
+
+    int s = id(source.x, source.y);
+    int t = id(target.x, target.y);
+    best[s].path_cost = 0.0;
+    
+    // queue entries: (f = g + h, g, node id), min-heap on f.
+    // path_cost stores the true cost g so the output matches the spec
+    // f is used only for ordering the priority queue.
+    using Entry = tuple<double,double,int>;
+    priority_queue<Entry, vector<Entry>, greater<Entry>> pq;
+    pq.push({h(best[s], target), 0.0, s});
+
+    while (!pq.empty()) {
+        auto [f, g, u] = pq.top(); pq.pop();
+        if (g > best[u].path_cost) continue;
+        if (u == t) break;
+
+        for (auto [v, w] : adj[u]) {
+            double ng = g + w;
+            if (ng < best[v].path_cost) {
+                best[v].path_cost = ng;
+                best[v].pred_x = best[u].x;
+                best[v].pred_y = best[u].y;
+                pq.push({ng + h(best[v], target), ng, v});
+            }
+        }
+    }
+
+    if (best[t].path_cost == INF) return {};
+
+    vector<GridNode> path;
+    int cur = t;
+    while (true) {
+        path.push_back(best[cur]);
+        if (cur == s) break;
+        cur = id(best[cur].pred_x, best[cur].pred_y);
+    }
+    reverse(path.begin(), path.end());
+    return path;
 }
-
-int main() {
-    return 0;
-}
-
